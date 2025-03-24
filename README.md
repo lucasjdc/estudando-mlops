@@ -11,4 +11,4 @@ pip install mlflow pandas scikit-learn matplotlib dvc
 
 rodar o Mlflow localmente
 
-mlflow ui --backend-store-uri sqlite:///mlflow.d
+mlflow ui --backend-store-uri sqlite:///mlflow.db
