@@ -25,8 +25,6 @@ lr.fit(X_train, y_train)
 
 mlflow.sklearn.log_model(lr, 'lr')
 lr_predict = lr.predict(X_test)
-print(X_test.iloc[0])
-print(y_test)
 
 mse = mean_squared_error(y_test, lr_predict)
 rmse = math.sqrt(mse)
@@ -43,8 +41,15 @@ mlflow.log_metric('r2', r2)
 mlflow.end_run()
 
 # XGbosst
+
+xgb_params = {
+	'learning_rate':0.2,
+	'n_estimators':50,
+	'random_state':42	
+}
+
 with mlflow.start_run():
-	xgb = XGBRFRegressor(random_state=42)
+	xgb = XGBRFRegressor(**xgb_params)
 	xgb.fit(X_train, y_train)
 	mlflow.xgboost.log_model(xgb, 'xgboost')
 	xgb_predicted = xgb.predict(X_test)
@@ -57,6 +62,10 @@ with mlflow.start_run():
 	mlflow.log_metric('mse', mse)
 	mlflow.log_metric('rmse', rmse)
 	mlflow.log_metric('r2', r2)
+
+all_runs = mlflow.search_runs(search_all_experiments=True)
+print(all_runs)
+
 
 # Para visualizar os experimentos, use no terminal:
 #mlflow ui --backend-store-uri sqlite:///mlflow.db
