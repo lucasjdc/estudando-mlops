@@ -1,9 +1,8 @@
 import pandas as pd
 import mlflow
+import xgboost
 import math
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from xgboost import XGBRFRegressor, XGBRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 
 # Carregar dados
@@ -18,53 +17,28 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_
 mlflow.set_tracking_uri("sqlite:///mlflow.db")
 mlflow.set_experiment('house-prices-eda')
 
-# Linear Regression
-mlflow.start_run()
-lr = LinearRegression()
-lr.fit(X_train, y_train)
-
-mlflow.sklearn.log_model(lr, 'lr')
-lr_predict = lr.predict(X_test)
-
-mse = mean_squared_error(y_test, lr_predict)
-rmse = math.sqrt(mse)
-r2 = r2_score(y_test, lr_predict)
-
-print("Regressão Linear")
-print(f"RMSE: {rmse}")
-print(f"R2: {r2}")
-
-mlflow.log_metric('mse', mse)
-mlflow.log_metric('rmse', rmse)
-mlflow.log_metric('r2', r2)
-
-mlflow.end_run()
-
 # XGbosst
 
-xgb_params = {
-	'learning_rate':0.2,
-	'n_estimators':50,
-	'random_state':42	
-}
+dtrain = xgboost.DMatrix(X_train, label=y_train)
+dtest = xgboost.DMatrix(X_test, label=y_test)
+
+xgb_params = {'learning_rate':0.2, 'seed':42}
 
 with mlflow.start_run():
-	xgb = XGBRFRegressor(**xgb_params)
-	xgb.fit(X_train, y_train)
+	mlflow.xgboost.autolog()
+	evals = [(dtrain, 'train')]
+	xgb = xgboost.train(xgb_params, dtrain, evals=evals)
 	mlflow.xgboost.log_model(xgb, 'xgboost')
-	xgb_predicted = xgb.predict(X_test)
+	xgb_predicted = xgb.predict(dtest)
 	mse = mean_squared_error(y_test, xgb_predicted)
 	rmse = math.sqrt(mse)
 	r2 = r2_score(y_test, xgb_predicted)
-	print("XGBoost")
+	print("\nXGBoost")
 	print(f"RMSE: {rmse}")
 	print(f"R2: {r2}")
 	mlflow.log_metric('mse', mse)
 	mlflow.log_metric('rmse', rmse)
 	mlflow.log_metric('r2', r2)
-
-all_runs = mlflow.search_runs(search_all_experiments=True)
-print(all_runs)
 
 
 # Para visualizar os experimentos, use no terminal:
