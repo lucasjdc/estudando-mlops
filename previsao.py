@@ -1,9 +1,26 @@
 import pandas as pd
 import mlflow
 import xgboost
+import argparse
 import math
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
+
+def parse_args():
+	parser = argparse.ArgumentParser(description="House Prices ML")
+	parser.add_argument(
+		'--learning-rate',
+		type=float,
+		default=0.3,
+		help="Taxa de aprendizado atualizar o tamanho de cada passo do boosting"
+	)
+	parser.add_argument(
+		'--max-depth',
+		type=int,
+		default=6,
+		help="Profundidade maxima das arvores"
+	)
+	return parser.parse_args()
 
 # Carregar dados
 df = pd.read_csv('casas.csv')
@@ -22,23 +39,29 @@ mlflow.set_experiment('house-prices-eda')
 dtrain = xgboost.DMatrix(X_train, label=y_train)
 dtest = xgboost.DMatrix(X_test, label=y_test)
 
-xgb_params = {'learning_rate':0.2, 'seed':42}
+def main():
+	args = parse_args()
+	xgb_params = {
+		'learning_rate': args.learning_rate,
+		'max_depth': args.max_depth,
+		'seed':42
+	}
 
-with mlflow.start_run():
-	mlflow.xgboost.autolog()
-	evals = [(dtrain, 'train')]
-	xgb = xgboost.train(xgb_params, dtrain, evals=evals)
-	mlflow.xgboost.log_model(xgb, 'xgboost')
-	xgb_predicted = xgb.predict(dtest)
-	mse = mean_squared_error(y_test, xgb_predicted)
-	rmse = math.sqrt(mse)
-	r2 = r2_score(y_test, xgb_predicted)
-	print("\nXGBoost")
-	print(f"RMSE: {rmse}")
-	print(f"R2: {r2}")
-	mlflow.log_metric('mse', mse)
-	mlflow.log_metric('rmse', rmse)
-	mlflow.log_metric('r2', r2)
+	with mlflow.start_run():
+		mlflow.xgboost.autolog()
+		evals = [(dtrain, 'train')]
+		xgb = xgboost.train(xgb_params, dtrain, evals=evals)
+		mlflow.xgboost.log_model(xgb, 'xgboost')
+		xgb_predicted = xgb.predict(dtest)
+		mse = mean_squared_error(y_test, xgb_predicted)
+		rmse = math.sqrt(mse)
+		r2 = r2_score(y_test, xgb_predicted)
+		mlflow.log_metric('mse', mse)
+		mlflow.log_metric('rmse', rmse)
+		mlflow.log_metric('r2', r2)
+
+if __name__ == "__main__":
+	main()
 
 
 # Para visualizar os experimentos, use no terminal:
